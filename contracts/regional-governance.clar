@@ -175,7 +175,7 @@
   (let
     (
       (new-region-id (+ (var-get region-counter) u1))
-      (current-time (unwrap-panic (get-stacks-block-info? time (- stacks-block-height u1))))
+      (current-time block-height)
     )
     ;; Validate region parameters
     (asserts! (and (>= region-type u1) (<= region-type u4)) ERR-INVALID-POLICY-CATEGORY)
@@ -214,7 +214,7 @@
   )
   (let
     (
-      (current-time (unwrap-panic (get-stacks-block-info? time (- stacks-block-height u1))))
+      (current-time block-height)
     )
     ;; Validate region exists
     (asserts! (is-some (map-get? regions { region-id: region-id })) ERR-REGION-NOT-FOUND)
@@ -260,8 +260,8 @@
     (
       (proposer-data (unwrap! (map-get? stakeholders { stakeholder: tx-sender }) ERR-STAKEHOLDER-NOT-REGISTERED))
       (new-proposal-id (+ (var-get proposal-counter) u1))
-      (voting-start stacks-block-height)
-      (voting-end (+ stacks-block-height voting-period))
+      (voting-start block-height)
+      (voting-end (+ block-height voting-period))
     )
     ;; Validate proposer is registered stakeholder
     (asserts! (is-some (some proposer-data)) ERR-STAKEHOLDER-NOT-REGISTERED)
@@ -310,11 +310,11 @@
     (
       (proposal-data (unwrap! (map-get? proposals { proposal-id: proposal-id }) ERR-PROPOSAL-NOT-FOUND))
       (voter-data (unwrap! (map-get? stakeholders { stakeholder: tx-sender }) ERR-STAKEHOLDER-NOT-REGISTERED))
-      (current-time (unwrap-panic (get-stacks-block-info? time (- stacks-block-height u1))))
+      (current-time block-height)
     )
     ;; Validate voting period is active
-    (asserts! (<= (get voting-start proposal-data) stacks-block-height) ERR-VOTING-CLOSED)
-    (asserts! (> (get voting-end proposal-data) stacks-block-height) ERR-VOTING-CLOSED)
+    (asserts! (<= (get voting-start proposal-data) block-height) ERR-VOTING-CLOSED)
+    (asserts! (> (get voting-end proposal-data) block-height) ERR-VOTING-CLOSED)
     
     ;; Validate vote type
     (asserts! (and (>= vote-type u1) (<= vote-type u3)) ERR-INVALID-VOTE-TYPE)
@@ -349,7 +349,7 @@
       { stakeholder: tx-sender }
       (merge voter-data { 
         total-votes-cast: (+ (get total-votes-cast voter-data) u1),
-        reputation-score: (min u100 (+ (get reputation-score voter-data) u1))
+        reputation-score: (if (< (+ (get reputation-score voter-data) u1) u100) (+ (get reputation-score voter-data) u1) u100)
       })
     )
     
@@ -362,10 +362,10 @@
   (let
     (
       (proposal-data (unwrap! (map-get? proposals { proposal-id: proposal-id }) ERR-PROPOSAL-NOT-FOUND))
-      (current-time (unwrap-panic (get-stacks-block-info? time (- stacks-block-height u1))))
+      (current-time block-height)
     )
     ;; Validate proposal has passed and voting is complete
-    (asserts! (> stacks-block-height (get voting-end proposal-data)) ERR-VOTING-CLOSED)
+    (asserts! (> block-height (get voting-end proposal-data)) ERR-VOTING-CLOSED)
     (asserts! (is-eq (get status proposal-data) STATUS-PASSED) ERR-UNAUTHORIZED)
     
     ;; Activate the policy
@@ -405,7 +405,7 @@
       (map-set proposals
         { proposal-id: proposal-id }
         (merge proposal-data { 
-          execution-block: (some stacks-block-height)
+          execution-block: (some block-height)
         })
       )
       

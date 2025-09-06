@@ -123,7 +123,7 @@
   (let 
     (
       (new-route-id (+ (var-get route-counter) u1))
-      (current-time (unwrap-panic (get-stacks-block-info? time (- stacks-block-height u1))))
+      (current-time block-height)
     )
     ;; Validate input parameters
     (asserts! (and (>= transport-mode u1) (<= transport-mode u4)) ERR-INVALID-TRANSPORT-MODE)
@@ -182,7 +182,7 @@
   (let
     (
       (route-data (unwrap! (map-get? routes { route-id: route-id }) ERR-ROUTE-NOT-FOUND))
-      (current-time (unwrap-panic (get-stacks-block-info? time (- stacks-block-height u1))))
+      (current-time block-height)
     )
     ;; Validate vehicle not already assigned
     (asserts! (is-none (map-get? vehicle-assignments { vehicle-id: vehicle-id })) ERR-VEHICLE-NOT-AVAILABLE)
@@ -228,7 +228,7 @@
   (let
     (
       (route-data (unwrap! (map-get? routes { route-id: route-id }) ERR-ROUTE-NOT-FOUND))
-      (current-time (unwrap-panic (get-stacks-block-info? time (- stacks-block-height u1))))
+      (current-time block-height)
     )
     ;; Validate caller is route creator or contract owner
     (asserts! (or (is-eq tx-sender (get creator route-data)) (is-eq tx-sender (var-get contract-owner))) ERR-UNAUTHORIZED)
@@ -393,7 +393,7 @@
     )
     ;; Higher utilization and lower distance per capacity unit = better cost efficiency
     (if (> capacity u0)
-        (min u100 (+ (* utilization-rate u6/10) (* (/ allocated capacity) u40)))
+        (let ((calculated-value (+ (/ (* utilization-rate u6) u10) (* (/ allocated capacity) u40)))) (if (< calculated-value u100) calculated-value u100))
         u0
     )
   )
@@ -408,7 +408,7 @@
     )
     ;; Calculate efficiency based on vehicles per capacity unit and fuel per distance
     (if (and (> vehicle-count u0) (> distance u0))
-        (min u100 (/ (* capacity u100) (* vehicle-count (/ fuel-allocation distance))))
+        (let ((calculated-value (/ (* capacity u100) (* vehicle-count (/ fuel-allocation distance))))) (if (< calculated-value u100) calculated-value u100))
         u0
     )
   )
